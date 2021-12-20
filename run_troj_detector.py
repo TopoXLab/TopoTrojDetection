@@ -74,16 +74,18 @@ def main(args):
         for root_m, dirnames, filenames in os.walk(os.path.join(root, model_name)):
             for filename in filenames:
                 if filename.endswith('.pt.1'):
-                    model_file_path.append(os.path.join(root_m, filename))
+                    model_file_path = os.path.join(root_m, filename)
+                if filename.endswith('gt.txt'):
+                    gt_file = os.path.join(root_m, gt_file)
                 if filename.endswith('.json'):
-                    model_config_path.append(os.path.join(root_m, filename))
+                    model_config_path = os.path.join(root_m, filename)
                 if filename.endswith('experiment_train.csv'):
                     model_train_example_config = os.path.join(root_m, filename)
             if len(model_file_path) and len(model_config_path) and model_train_example_config:
                 break
 
         try:
-            model_file_path = model_file_path[0]
+            model_file_path = model_file_path
             model = torch.load(model_file_path).to(device)
         except:
             print("Model {} .pt file is missing, skip to next model".format(model_name))
@@ -91,10 +93,17 @@ def main(args):
         model.eval()
 
         try:
-            model_config = jsonpickle.decode(open(model_config_path[0], "r").read())
+            model_config = jsonpickle.decode(open(model_config_path, "r").read())
         except:
             print("Model {} config is missing, skip to next model".format(model_config))
             continue
+
+        if args.gt_file:
+            with open(args.gt_file, "w") as f:
+                gt = int(f.readlines().strip())
+        else:
+            gt = ('final_triggered_data_n_total' in model_config.keys())
+        gt_list.append(gt)
 
         img_c = None
         # If use_examples then read in clean input example images
@@ -136,7 +145,8 @@ def main(args):
         #   h: height of the feature map
         #   L: number of stimulation levels
         #   C: number of classes
-        psf_feature=torch.cat([fv_list[i]['psf_feature_pos'].unsqueeze(0)[:,:,:,:,:,:,:10] for i in range(len(fv_list))])
+        psf_feature=torch.cat([fv_list[i]['psf_feature_pos'].unsqueeze(0) for i in range(len(fv_list))])
+        # TOPO feature shape = N*12 where 12 is the total number of topological feature from dim0 and dim1
         topo_feature = torch.cat([fv_list[i]['topo_feature_pos'].unsqueeze(0) for i in range(len(fv_list))])
 
         topo_feature[np.where(topo_feature==np.Inf)]=1
