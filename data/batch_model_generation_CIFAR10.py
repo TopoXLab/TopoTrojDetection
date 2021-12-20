@@ -17,7 +17,6 @@ if __name__=='__main__':
     LOG_FILE: str = "./data/log"                # Log file name
     TENSORBOARD_DIR: str = "./data/tensorboard" # Tensorboard directory
 
-    #TODO: Change default when release
     parser = argparse.ArgumentParser(description='CIFAR10 Data & Model Generator and Experiment')
     parser.add_argument('--console', action='store_true', help="Write output to console")
     parser.add_argument('--train_val_split', help='Amount of train data to use for validation', default=0.1, type=float)

@@ -6,7 +6,7 @@ This is the code for the paper:
 <br>
 Songzhu Zheng, Yikai Zhang, Hubert Wagner, Mayank Goswami, Chao Chen
 </br>
-[Paper Link](https://openreview.net/pdf?id=1r2EannVuIA)
+[[Paper Link]](https://openreview.net/pdf?id=1r2EannVuIA).
 Presented at [NeurIPS 2021](https://nips.cc/virtual/2021/poster/26328)
 
 If you find this code useful in your research please cite:
@@ -21,22 +21,67 @@ If you find this code useful in your research please cite:
 
 ## Introduction 
 
-AdaCorr is an algorithm that is designed to perform robustly when label noise is presented in your training data. This algorithm will try to correct mislabeled data points during training process relying on current network's confidence. 
+TopoTrojanDetection is a tool to build a classifier for Trojaned network detection. 
+For a given pool of networks that are under scrutinization, 
+this algorithm first extracts 6 topological features from each dimension 
+(total number of points in persistent diagram, average persistence, average middle life, maximum middle life, maximum persistence, topk persistence) 
+from each of these models. Together with these topological features, we also extract pixel-wise stimulation feature (logits and confidence of perturbed images). 
+Next, a binary classifier is trained using these features to distinguish Trojaned and clean networks. 
 
-Specifically, for each input data point
-- (1) Likelihood ratio test (LRT) is performed to test the correctness of its current label. If the label is rejected by the test, the algorithm will set the new label to be the current MLE. 
-- (2) Network will keep trainning using the new labels, which refines the power of the test
 
-Steps (1) and (2) are conducted iteratively until the learning procedure converges.
 
 ## Environment Setting
 
-The environment setup for AdaCorr is listed in environment.yml. To install, run:
+The environment setup for TopoTrojanDetection is listed in environment.yml. To install, run:
 
 ```bash
 conda env create -f environment.yml
-source activate torch1.6
+source activate TopoDetect
 ```
+
+## Generate Trojaned Networks (Data Preparation)
+__(Use Our Database)__ We use [trojai toolkit](https://trojai.readthedocs.io/en/latest/) to generate Trojaned networks. 
+We provide our experiment data through following Google doc link: [MNIST+LeNet5](), [MNIST+ResNet18](), [CIFAR10+ResNet18](), and [CIFAR10+DenseNet121](). 
+
+__(Train New Trojaned Network)__ We also provide source code to generate Trojaned network. To generate Trojaned networks on MNIST, run:
+```bash
+cd data
+python batch_model_generation_MNSIT.py 
+[--gpu] 
+[--console]
+[--parallel]
+[--network MODEL_ARCHITECTURE] 
+[--num_models NUMBER_OF_MODELS] 
+[--troj_frac FRACTION_OF_TROJANED_IMAGES]
+[--target_class TARGET_CLASS]
+[--gpu_ind GPU_INDICE]
+```
+
+To generate Trojaned networks on CIFAR10, use:
+```bash
+cd data
+python batch_model_generation_CIFAR10.py
+[--gpu]
+[--console]
+[--parallel]
+[--early_stopping]
+[--network MODEL_ARCHITECTURE] 
+[--num_models NUMBER_OF_MODELS] 
+[--troj_frac FRACTION_OF_TROJANED_IMAGES]
+[--target_class TARGET_CLASS]
+[--train_val_split TRAIN_VALID_SPLIT]
+[--gpu_ind GPU_INDICE]
+```
+
+For example, to generate 20 Trojaned LeNet5 networks with 20% all-to-one attack with target class 0, run:
+```bash
+cd data
+python batch_model_generation_MNIST.py --gpu --network leenet5 --num_models 20 --troj_frac 0.2 --target_class 0
+```
+
+
+__(Use Customized Database)__
+
 
 ## Running AdaCorr 
 

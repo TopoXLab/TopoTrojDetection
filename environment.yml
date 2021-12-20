@@ -1,4 +1,4 @@
-name: round5
+name: TopoDetect
 channels:
   - pytorch
   - huggingface
