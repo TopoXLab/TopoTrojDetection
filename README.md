@@ -80,6 +80,8 @@ cd data
 python batch_model_generation_MNIST.py --gpu --network leenet5 --num_models 20 --troj_frac 0.2 --target_class 0
 ```
 
+__(Download NIST TrojAI Competition Dataset).__ To download TrojAI competition dataset, use this [download page link](https://pages.nist.gov/trojai/docs/data.html)
+
 __(Use Customized Database)__
 If you want to use your own Trojaned networks database, make sure your folder is in following structure: 
 
