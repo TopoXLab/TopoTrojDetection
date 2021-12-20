@@ -73,7 +73,8 @@ python batch_model_generation_CIFAR10.py
 [--gpu_ind GPU_INDICE]
 ```
 
-For example, to generate 20 Trojaned LeNet5 networks with 20% all-to-one attack with target class 0, run:
+For example, to generate 20 Trojaned LeNet5 networks with 20% one-to-one attack with target class 0 (the source class will be target-1, if target is 0 then the source is NUM_CLASS-1), 
+run:
 ```bash
 cd data
 python batch_model_generation_MNIST.py --gpu --network leenet5 --num_models 20 --troj_frac 0.2 --target_class 0
@@ -85,10 +86,10 @@ If you want to use your own Trojaned networks database, make sure your folder is
     .
     ├── id-00000000                 # Model ID
         ├── model.pt.1              # Model .pt file
-        ├── configure.csv           # Model meta file
-        ├── gt.txt                  # Trojaned Flag
-        └── examples                # Folder that contains clean input images (optional)
-            ├── example_1.png
+        ├── experiment_train.csv    # Examples' meta file (please follow the naming here)
+        ├── gt.txt                  # Trojaned Flag       (please follow the naming here)
+        └── examples                # Folder that contains clean input images (optional, needed if use_examples)
+            ├── example_1.png       # Name of images can be arbitrary
             ├── example_2.png
             ├── example_3.png
             ├── ...
@@ -96,5 +97,41 @@ If you want to use your own Trojaned networks database, make sure your folder is
     ├── id-00000002
     ├── ...
 
+The ```configure.csv``` file should contain the absolute path to each of your training examples and 
+flags indicating whether it's a Trojaned example or not. A example snippet of ```configure.csv``` is
+shown below:
+
+| path |  true_label | train_label | triggered |
+|:---:|:---:|:---:|:---:|
+|mnist_clean/train/mnist_train_id_0_class_5.png| 5 | 5 | False |
+|mnist_clean/train/mnist_train_id_1_class_0.png| 0 | 0 | False |
+|mnist_clean/train/mnist_train_id_2_class_4.png| 4 | 0 | True |
+|...|||
+
 ## Running TopoTrojanDetection
-Under construction
+
+There are also several hyper-parameter you can change in ```run_troj_detector.py``` to tune the algorithm. 
+
+    STEP_SIZE:  int = 2 # Stimulation stepsize used in PSF
+    PATCH_SIZE: int = 8 # Stimulation patch size used in PSF
+    STIM_LEVEL: int = 4 # Number of stimulation level used in PSF
+    INPUT_SIZE: List = [1, 28, 28] # Input images' shape (default to be MNIST)
+    INPUT_RANGE: List = [0, 255]   # Input image range
+    USE_EXAMPLE: bool =  False     # Whether clean inputs will be given or not
+    TRAIN_TEST_SPLIT: float = 0.8  # Ratio of train to test
+    
+After you prepare your database, you are ready to run the Trojan detection training. Run following code to start the training: 
+
+```bash
+python run_troj_detector.py 
+--data_root <DATABASE_PATH> 
+[--log_path LOG_PATH] 
+[--gpu_ind GPU_INDEICE]
+[--seed RANDOM_SEED]
+``` 
+For example, after you run ```batch_model_generation_MNSIT.py```, you could run following line to start detector training: 
+```bash
+python run_troj_detector.py --data_root ./data 
+```
+
+
