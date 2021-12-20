@@ -28,7 +28,7 @@ this algorithm first extracts 6 topological features from each dimension
 from each of these models. Together with these topological features, we also extract pixel-wise stimulation feature (logits and confidence of perturbed images). 
 Next, a binary classifier is trained using these features to distinguish Trojaned and clean networks. 
 
-
+![pipeline_demo](https://github.com/pingqingsheng/TopoTrojDetection/blob/main/images/pipeline_demo.png)
 
 ## Environment Setting
 
