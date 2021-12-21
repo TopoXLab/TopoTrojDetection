@@ -133,7 +133,7 @@ python run_troj_detector.py
 ``` 
 For example, after you run ```batch_model_generation_MNSIT.py```, you could run following line to start detector training: 
 ```bash
-python run_troj_detector.py --data_root ./data 
+python run_troj_detector.py --data_root ./data/data
 ```
 
 

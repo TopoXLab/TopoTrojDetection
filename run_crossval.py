@@ -10,7 +10,6 @@ import numpy as np
 from sklearn.model_selection import KFold
 from sklearn.metrics import roc_auc_score
 import torch
-import xgboost as xgb
 from hyperopt import hp, tpe, fmin, STATUS_OK, Trials
 
 from networks import ResNet18, DenseNet121, MLP
@@ -25,6 +24,7 @@ def xgb_crossval(p):
         return_dict: A dictionary contain HPO results
     """
 
+    import xgboost as xgb # Need to import here for HPO
     feature, gt_labels, max_depth, eta, gamma, lamb, alpha=p
     param = {'objective': 'binary:logistic', 'nthread':4, 'eval_metric':'auc'}
     param['max_depth']=int(max_depth)

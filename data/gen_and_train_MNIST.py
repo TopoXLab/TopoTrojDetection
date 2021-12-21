@@ -250,7 +250,7 @@ def train_and_save_mnist_model(experiment_path,
             elif a.network=='resnet18':
                 return tpmac.ResNet18()
 
-    num_epochs=int(3)
+    num_epochs=int(a.num_epochs)
     training_cfg = tpmc.TrainingConfig(device=device,
                                        epochs=num_epochs,
                                        batch_size=20,
@@ -289,6 +289,7 @@ if __name__ == "__main__":
     parser.add_argument('--gpu_ind', type=str, default='0', help='Indices of GPUs to be used')
     parser.add_argument('--parallel', action='store_true', default=True, help='Enable training with parallel processing, including multiple GPUs if available')
     parser.add_argument('--num_models', type=int, help='Number of models to be generated', default=1)
+    parser.add_argument('--num_epochs', type=int, help="Number of training epochs for each model", default=20)
     parser.add_argument('--troj_frac', type=float, help='Fraction of target class images that are triggered', default=0.2)
     parser.add_argument('--target_class', type=str, help='Classes to be flipped to', default='0')
     parser.add_argument('--network', type=str, help='Experiment model architecture', default='leenet5', choices={'leenet5','resnet18'})

@@ -129,9 +129,11 @@ def topo_feature_generator(PH: List, dim: int)-> Dict:
     med_midlife = np.median((pd_dim[:, 0] + pd_dim[:, 1]) / 2) if betti > 0 else 0
     max_persis = (pd_dim[:, 1] - pd_dim[:, 0]).max() if betti > 0 else 0
     top_5_persis = np.mean(np.sort(pd_dim[:, 1] - pd_dim[:, 0])[-5:]) if betti > 0 else 0
-    topo_feature_dict = {"betti_" + str(dim): betti, "avepersis_" + str(dim): ave_persis,
+    topo_feature_dict = {"betti_" + str(dim): betti,
+                         "avepersis_" + str(dim): ave_persis,
                          "avemidlife_" + str(dim): ave_midlife,
-                         "maxmidlife_" + str(dim): med_midlife, "maxpersis_" + str(dim): max_persis,
+                         "maxmidlife_" + str(dim): med_midlife,
+                         "maxpersis_" + str(dim): max_persis,
                          "toppersis_" + str(dim): top_5_persis}
     return topo_feature_dict
 
@@ -270,10 +272,6 @@ def topo_psf_feature_extract(model: torch.nn.Module, example_dict: Dict, psf_con
                 topo_feature_pos[c, int(feature_w_pos*feature_map_w+feature_h_pos), :]=topo_feature
                 feature_h_pos+=1
 
-                print('\r' + "Progress [{:d}|{:d}] {:.3f}% - {:.2}s/iteration".format(
-                    progress, len(example_dict.keys())*feature_map_h*feature_map_w,
-                    progress/(len(example_dict.keys())*feature_map_h*feature_map_w)*100, time.time()-t0), end='')
-                progress+=1
             feature_w_pos+=1
 
     fv={}

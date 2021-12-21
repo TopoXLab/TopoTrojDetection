@@ -29,12 +29,13 @@ from run_crossval import run_crossval_xgb, run_crossval_mlp
 
 # Algorithm Configuration
 STEP_SIZE:  int = 2 # Stimulation stepsize used in PSF
-PATCH_SIZE: int = 8 # Stimulation patch size used in PSF
+PATCH_SIZE: int = 2 # Stimulation patch size used in PSF
 STIM_LEVEL: int = 4 # Number of stimulation level used in PSF
 INPUT_SIZE: List = [1, 28, 28] # Input images' shape (default to be MNIST)
 INPUT_RANGE: List = [0, 255]   # Input image range
 USE_EXAMPLE: bool =  False     # Whether clean inputs will be given or not
 TRAIN_TEST_SPLIT: float = 0.8  # Ratio of train to test
+CLASSIFIER: str = 'mlp'    # Classifier for the detection , choice = {xgboost, mlp}.
 
 def main(args):
 
@@ -61,6 +62,7 @@ def main(args):
     model_list = sorted(os.listdir(root))
 
     # --------------------------------- Step I: Feature Extraction ---------------------------------
+    print(">>> Step I: Feature Extraction <<<")
     gt_list = []
     fv_list = []
 
@@ -70,6 +72,7 @@ def main(args):
         model_file_path = []
         model_config_path = []
         model_train_example_config = None
+        gt_file = None
 
         for root_m, dirnames, filenames in os.walk(os.path.join(root, model_name)):
             for filename in filenames:
@@ -98,7 +101,7 @@ def main(args):
             print("Model {} config is missing, skip to next model".format(model_config))
             continue
 
-        if args.gt_file:
+        if gt_file:
             with open(args.gt_file, "w") as f:
                 gt = int(f.readlines().strip())
         else:
@@ -106,6 +109,7 @@ def main(args):
         gt_list.append(gt)
 
         img_c = None
+        total_examples = 1 # Default to be a blank image if USE_EXAMPLE=False
         # If use_examples then read in clean input example images
         if USE_EXAMPLE and os.path.exists(model_train_example_config):
             img_c = defaultdict(list)
@@ -135,10 +139,11 @@ def main(args):
         # fv_list[i]['psf_feature_pos'] shape: 2 * nExample * fh * fw * nStimLevel * nClasses
 
     # --------------------------------- Step II: Train Classifier ---------------------------------
-    if args.classifier=='xgboost':
+    print(">>> Step II: Train Classifier <<<")
+    if CLASSIFIER=='xgboost':
 
         # PSF feature shape = N*2*m*w*h*L*C
-        #   N: number of models
+        #   n: number of models
         #   2: logits and confidence
         #   m: number of input images
         #   w: width of the feature map
@@ -155,7 +160,7 @@ def main(args):
         psf_diff_max=(psf_feature_dat.max(dim=3)[0]-psf_feature_dat.min(dim=3)[0]).max(2)[0].view(len(gt_list), -1)
         psf_med_max=psf_feature_dat.median(dim=3)[0].max(2)[0].view(len(gt_list), -1)
         psf_std_max=psf_feature_dat.std(dim=3).max(2)[0].view(len(gt_list), -1)
-        psf_topk_max=psf_feature_dat.topk(k=2, dim=3)[0].mean(2).max(2)[0].view(len(gt_list), -1)
+        psf_topk_max=psf_feature_dat.topk(k=min(3, total_examples), dim=3)[0].mean(2).max(2)[0].view(len(gt_list), -1)
         psf_feature_dat=torch.cat([psf_diff_max, psf_med_max, psf_std_max, psf_topk_max], dim=1)
 
         dat=torch.cat([psf_feature_dat, topo_feature.view(topo_feature.shape[0], -1)], dim=1)
@@ -163,7 +168,7 @@ def main(args):
         gt_list=torch.tensor(gt_list)
 
         N = len(gt_list)
-        n_train = int(args.train_test_split * N)
+        n_train = int(TRAIN_TEST_SPLIT * N)
         ind_reshuffle = np.random.choice(list(range(N)), N, replace=False)
         train_ind = ind_reshuffle[:n_train]
         test_ind = ind_reshuffle[n_train:]
@@ -192,44 +197,19 @@ def main(args):
         ce_test = np.sum(-(labels * np.log(y_pred) + (1 - labels) * np.log(1 - y_pred))) / len(y_pred)
 
 
-    if args.classifier=='mlp':
+    if CLASSIFIER=='mlp':
         dat=[]
         for i in range(len(fv_list)):
             psf_fv_pos_i=fv_list[i]['psf_feature_pos']
-            _, nEx, fh, fw, nSim, C=psf_fv_pos_i.shape
-            psf_fv_pos_i=psf_fv_pos_i.reshape(2, nEx, -1, nSim, C)
-            psf_diff=(psf_fv_pos_i.max(dim=3)[0]-psf_fv_pos_i.min(dim=3)[0]).max(2)[0].permute(1,0,2)
-            psf_med=psf_fv_pos_i.median(dim=3)[0].max(2)[0].permute(1,0,2)
-            psf_std=psf_fv_pos_i.std(dim=3).max(2)[0].permute(1,0,2)
-            psf_topk=psf_fv_pos_i.topk(k=min(3, nSim), dim=3)[0].mean(2).max(2)[0].permute(1,0,2)
-            psf_diff_max=psf_diff.max(dim=2)[0]
-            psf_diff_min=psf_diff.min(dim=2)[0]
-            psf_diff_mean=psf_diff.mean(dim=2)
-            psf_diff_std=psf_diff.std(dim=2)
-            psf_med_max=psf_med.max(dim=2)[0]
-            psf_med_min=psf_med.min(dim=2)[0]
-            psf_med_mean=psf_med.mean(dim=2)
-            psf_med_std=psf_med.std(dim=2)
-            psf_std_max=psf_std.max(dim=2)[0]
-            psf_std_min=psf_std.min(dim=2)[0]
-            psf_std_mean=psf_std.mean(dim=2)
-            psf_std_std=psf_std.std(dim=2)
-            psf_topk_max=psf_topk.max(dim=2)[0]
-            psf_topk_min=psf_topk.min(dim=2)[0]
-            psf_topk_mean=psf_topk.mean(dim=2)
-            psf_topk_std=psf_topk.std(dim=2)
-
+            _, nEx, fh, fw, nSim, C = psf_fv_pos_i.shape
+            psf_fv_pos_i=psf_fv_pos_i.permute(5, 0, 1, 2, 3, 4)
+            psf_fv_pos_i=psf_fv_pos_i.reshape(C, -1)
             topo_fv_pos_i=fv_list[i]['topo_feature_pos'].view(nEx, -1)
-
-            dat_pos_i = torch.cat([psf_diff_max, psf_diff_min, psf_diff_mean, psf_diff_std,
-                                      psf_med_max, psf_med_min, psf_med_mean, psf_med_std,
-                                      psf_std_max, psf_std_min, psf_std_mean, psf_std_std,
-                                      psf_topk_max, psf_topk_min, psf_topk_mean, psf_topk_std,
-                                      topo_fv_pos_i], dim=1)
+            dat_pos_i={'psf_fv_pos_i':psf_fv_pos_i, 'topo_fv_pos_i':topo_fv_pos_i}
             dat.append(dat_pos_i)
 
         N = len(dat)
-        n_train = int(args.train_test_split * N)
+        n_train = int(TRAIN_TEST_SPLIT * N)
         ind_reshuffle = np.random.choice(list(range(N)), N, replace=False)
         train_ind = ind_reshuffle[:n_train]
         test_ind = ind_reshuffle[n_train:]
@@ -245,26 +225,31 @@ def main(args):
 
         # Evaluation
         output_mv=torch.zeros(len(feature_test), 2).cuda()
-        correct = 0
-        total = 0
         for i in range(len(best_model_list['models'])):
-            encoder, cls = best_model_list['models'][i]
+            psf_encoder, topo_encoder, cls = best_model_list['models'][i]
             weight = best_model_list['weight'][i]/sum(best_model_list['weight'])
-            encoder.eval()
+
+            psf_encoder.eval()
+            topo_encoder.eval()
             cls.eval()
-            # 32 is the batch size for inference
-            for i in range(0, max(int((len(feature_test) - 1) / 32), 1)):
-                batch = feature_test[(32*i):min(32*(i+1), len(feature_test))]
+            correct = 0
+            total = 0
+            for j in range(0, max(int((len(feature_test) - 1) / 32), 1)):
+                batch = feature_test[(32*j):min(32*(j+1), len(feature_test))] # 32 is the batch size
                 embedding_list = []
                 for single_input in batch:
-                    if len(single_input) == 1:
-                        single_input = single_input.repeat(5, 1) + 0.1*torch.randn(5, single_input.shape[1])
-                    single_input = single_input.cuda()
-                    embedding = encoder(single_input)
+                    psf_fv_pos_i=single_input['psf_fv_pos_i'].cuda()
+                    topo_fv_pos_i=single_input['topo_fv_pos_i'].cuda()
+                    psf_embedding=psf_encoder(psf_fv_pos_i)
+                    # Tricks to handle single data point batch. Repeat this data point 5 times and add some Gaussian noise
+                    if len(topo_fv_pos_i)==1:
+                        topo_fv_pos_i=topo_fv_pos_i.repeat(5, 1)+torch.randn(5, topo_fv_pos_i.shape[1]).cuda()
+                    topo_embedding=topo_encoder(topo_fv_pos_i)
+                    embedding=torch.cat([psf_embedding.mean(0).flatten(), topo_embedding.mean(0).flatten()])
                     embedding_list.append(embedding)
-                embeddings = torch.cat([x.mean(dim=0).unsqueeze(0) for x in embedding_list])
+                embeddings = torch.cat([x.unsqueeze(0) for x in embedding_list])
                 output = cls(embeddings)
-                output_mv[(32*i):min(32*(i+1), len(feature_test))]+=output*weight
+                output_mv[(32*j):min(32*(j+1), len(feature_test))]+=output*weight
 
         gt_test=torch.tensor(gt_test)
         output=output_mv
