@@ -41,7 +41,10 @@ source activate TopoDetect
 
 ## Generate Trojaned Networks (Data Preparation)
 __(Use Our Database)__ We use [trojai toolkit](https://trojai.readthedocs.io/en/latest/) to generate Trojaned networks. 
-We provide our experiment data through following Google doc link: [MNIST+LeNet5](), [MNIST+ResNet18](), [CIFAR10+ResNet18](), and [CIFAR10+DenseNet121](). 
+We provide our experiment data through following Google doc link: [MNIST+LeNet5](https://drive.google.com/file/d/17KSmLv42X5LLUEGiJCn5KzHSq0fXcywv/view?usp=sharing), 
+[MNIST+ResNet18](https://drive.google.com/file/d/1AnFbSAMU5c_DOWquy8mGweqMDZ3AVgr-/view?usp=sharing), 
+[CIFAR10+ResNet18](https://drive.google.com/file/d/1RWCf0IN5_vle-lI4sFWV1WcLTDvcDECj/view?usp=sharing), and 
+[CIFAR10+DenseNet121](https://drive.google.com/file/d/1meb_yQfhZmn2RGBEOGKgfwayPLx0wroC/view?usp=sharing). 
 
 __(Train New Trojaned Network)__ We also provide source code to generate Trojaned network. To generate Trojaned networks on MNIST, run:
 ```bash
