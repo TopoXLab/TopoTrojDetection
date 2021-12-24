@@ -12,10 +12,10 @@ import subprocess
 if __name__=='__main__':
 
     # Specify data generation configuration
-    TOP_DIR: str =  "./data"                    # Top level directory that is used to hold all Trojaned models
-    CLEAN_DATA_DIR: str = "./data/clean_data"   # Folder that holds the clean input images. Put your clean MNIST dataset here
-    LOG_FILE: str = "./data/log"                # Log file name
-    TENSORBOARD_DIR: str = "./data/tensorboard" # Tensorboard directory
+    TOP_DIR: str =  "./generated_data"                    # Top level directory that is used to hold all Trojaned models
+    CLEAN_DATA_DIR: str = "./generated_data/clean_data"   # Folder that holds the clean input images. Put your clean MNIST dataset here
+    LOG_FILE: str = "./generated_data/log"                # Log file name
+    TENSORBOARD_DIR: str = "./generated_data/tensorboard" # Tensorboard directory
 
     parser = argparse.ArgumentParser(description='MNIST Data Generation and Model Training')
     unparser=argunparse.ArgumentUnparser()
@@ -31,6 +31,11 @@ if __name__=='__main__':
     parser.add_argument('--network', type=str, help='Experiment model architecture', default='leenet5', choices={'leenet5','resnet18'})
     a = parser.parse_args()
     os.environ['CUDA_VISIBLE_DEVICES']=a.gpu_ind
+
+    os.makedirs(TOP_DIR, exist_ok=True)
+    os.makedirs(CLEAN_DATA_DIR, exist_ok=True)
+    os.makedirs(LOG_FILE, exist_ok=True)
+    os.makedirs(TENSORBOARD_DIR, exist_ok=True)
 
     processes=[]
     for i in range(a.num_models):
