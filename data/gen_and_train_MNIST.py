@@ -1,9 +1,6 @@
 """
 This script downloads mnist data, creates and experiment with the alpha trigger from the Badnets paper
 (https://arxiv.org/abs/1708.06733), and then trains a model with the architecture referenced in the same paper.
-
-In this example, the model is trained on a 20% poisoned dataset for 300 epochs. Expected performance using pure
-classification accuracy on clean and triggered data is ~99.2% on clean data and ~98.8% on triggered.
 """
 
 import os
@@ -289,7 +286,7 @@ if __name__ == "__main__":
     parser.add_argument('--gpu_ind', type=str, default='0', help='Indices of GPUs to be used')
     parser.add_argument('--parallel', action='store_true', default=True, help='Enable training with parallel processing, including multiple GPUs if available')
     parser.add_argument('--num_models', type=int, help='Number of models to be generated', default=1)
-    parser.add_argument('--num_epochs', type=int, help="Number of training epochs for each model", default=20)
+    parser.add_argument('--num_epochs', type=int, help="Epoch before launching early stopping", default=20)
     parser.add_argument('--troj_frac', type=float, help='Fraction of target class images that are triggered', default=0.2)
     parser.add_argument('--target_class', type=str, help='Classes to be flipped to', default='0')
     parser.add_argument('--network', type=str, help='Experiment model architecture', default='leenet5', choices={'leenet5','resnet18'})

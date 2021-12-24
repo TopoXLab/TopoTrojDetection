@@ -12,10 +12,10 @@ import subprocess
 if __name__=='__main__':
 
     # Specify data generation configuration
-    TOP_DIR: str =  "./generated_data"                    # Top level directory that is used to hold all Trojaned models
-    CLEAN_DATA_DIR: str = "./generated_data/clean_data"   # Folder that holds the clean input images. Put your clean MNIST dataset here
-    LOG_FILE: str = "./generated_data/log"                # Log file name
-    TENSORBOARD_DIR: str = "./generated_data/tensorboard" # Tensorboard directory
+    TOP_DIR: str =  "./data"                    # Top level directory that is used to hold all Trojaned models
+    CLEAN_DATA_DIR: str = "./data/clean_data"   # Folder that holds the clean input images. Put your clean MNIST dataset here
+    LOG_FILE: str = "./data/log"                # Log file name
+    TENSORBOARD_DIR: str = "./data/tensorboard" # Tensorboard directory
 
     parser = argparse.ArgumentParser(description='MNIST Data Generation and Model Training')
     unparser=argunparse.ArgumentUnparser()
@@ -25,7 +25,8 @@ if __name__=='__main__':
     parser.add_argument('--gpu_ind', type=str, default='0', help='Indices of GPUs to be used')
     parser.add_argument('--parallel',  action='store_true', help='Enable training with parallel processing, including multiple GPUs if available')
     parser.add_argument('--num_models', type=int, help='Number of models to be generated', default=1)
-    parser.add_argument('--num_epochs', type=int, help="Number of training epochs", default=20)
+    # Use early stop to fulfill Trojan requirement, algorithm will run until stopping
+    parser.add_argument('--num_epochs', type=int, help="Epoch before launching early stopping", default=20)
     parser.add_argument('--troj_frac', type=float, help='Fraction of target class images that are triggered', default=0.2)
     parser.add_argument('--target_class', type=str, help='Classes to be flipped to', default='0')
     parser.add_argument('--network', type=str, help='Experiment model architecture', default='leenet5', choices={'leenet5','resnet18'})

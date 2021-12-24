@@ -12,10 +12,10 @@ import subprocess
 if __name__=='__main__':
 
     # Specify data generation configuration
-    TOP_DIR: str =  "./generated_data"                    # Top level directory that is used to hold all Trojaned models
-    CLEAN_DATA_DIR: str = "./generated_data/clean_data"   # Folder that holds the clean input images. Put your clean CIFAR10 dataset here
-    LOG_FILE: str = "./generated_data/log"                # Log file name
-    TENSORBOARD_DIR: str = "./generated_data/tensorboard" # Tensorboard directory
+    TOP_DIR: str =  "./data"                    # Top level directory that is used to hold all Trojaned models
+    CLEAN_DATA_DIR: str = "./data/clean_data"   # Folder that holds the clean input images. Put your clean CIFAR10 dataset here
+    LOG_FILE: str = "./data/log"                # Log file name
+    TENSORBOARD_DIR: str = "./data/tensorboard" # Tensorboard directory
 
     parser = argparse.ArgumentParser(description='CIFAR10 Data & Model Generator and Experiment')
     parser.add_argument('--console', action='store_true', help="Write output to console")
@@ -24,7 +24,7 @@ if __name__=='__main__':
     parser.add_argument('--gpu_index', default='0', help='Index of GPUs to be used')
     parser.add_argument('--early_stopping', action='store_true', help="True to apply early stopping")
     parser.add_argument('--num_epochs', type=int, default=20, help="Number of training epochs to use for each model")
-    parser.add_argument('--num_models', type=int, help='Number of models to be generated', default=1)
+    parser.add_argument('--num_models', type=int, help='Epoch before launching early stopping', default=20)
     parser.add_argument('--troj_frac', type=float, default=0.2, help='Trojan fraction')
     parser.add_argument('--target_class', type=str, default=0, help='Target class to be flipped to')
     parser.add_argument('--network', type=str, help='Architecture to be used', default='resnet18', choices={'resnet18', 'densenet121'})

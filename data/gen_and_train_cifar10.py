@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import argparse
 import glob
 import logging.config
@@ -47,7 +45,7 @@ if __name__ == "__main__":
     parser.add_argument('--gpu', action='store_true', default=True)
     parser.add_argument('--gpu_index', default='0', help='Index of GPUs to be used')
     parser.add_argument('--early_stopping', action='store_true', default=True)
-    parser.add_argument('--num_epochs', type=int, default=20)
+    parser.add_argument('--num_epochs', type=int, help='Epoch before launching early stopping', default=20)
     parser.add_argument('--train_val_split', help='Amount of train data to use for validation', default=0.1, type=float)
     parser.add_argument('--num_models', type=int, help='Number of models to be generated')
     parser.add_argument('--troj_frac', type=float, help='Trojan fraction')
