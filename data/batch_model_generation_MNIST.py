@@ -34,7 +34,6 @@ if __name__=='__main__':
 
     os.makedirs(TOP_DIR, exist_ok=True)
     os.makedirs(CLEAN_DATA_DIR, exist_ok=True)
-    os.makedirs(LOG_FILE, exist_ok=True)
     os.makedirs(TENSORBOARD_DIR, exist_ok=True)
 
     processes=[]
