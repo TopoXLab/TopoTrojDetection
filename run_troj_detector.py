@@ -35,7 +35,7 @@ INPUT_SIZE: List = [1, 28, 28] # Input images' shape (default to be MNIST)
 INPUT_RANGE: List = [0, 255]   # Input image range
 USE_EXAMPLE: bool =  False     # Whether clean inputs will be given or not
 TRAIN_TEST_SPLIT: float = 0.8  # Ratio of train to test
-CLASSIFIER: str = 'mlp'    # Classifier for the detection , choice = {xgboost, mlp}.
+CLASSIFIER: str = 'xgboost'    # Classifier for the detection , choice = {xgboost, mlp}.
 
 def main(args):
 
