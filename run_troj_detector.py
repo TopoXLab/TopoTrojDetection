@@ -76,7 +76,7 @@ def main(args):
 
         for root_m, dirnames, filenames in os.walk(os.path.join(root, model_name)):
             for filename in filenames:
-                if filename.endswith('.pt.1'):
+                if filename.endswith('.pt.1') or filename.endswith('.pt'):
                     model_file_path = os.path.join(root_m, filename)
                 if filename.endswith('gt.txt'):
                     gt_file = os.path.join(root_m, gt_file)
@@ -98,8 +98,7 @@ def main(args):
         try:
             model_config = jsonpickle.decode(open(model_config_path, "r").read())
         except:
-            print("Model {} config is missing, skip to next model".format(model_config))
-            continue
+            print("Model {} config is missing".format(model_config))
 
         if gt_file:
             with open(args.gt_file, "w") as f:
