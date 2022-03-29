@@ -31,11 +31,15 @@ from run_crossval import run_crossval_xgb, run_crossval_mlp
 STEP_SIZE:  int = 2 # Stimulation stepsize used in PSF
 PATCH_SIZE: int = 2 # Stimulation patch size used in PSF
 STIM_LEVEL: int = 4 # Number of stimulation level used in PSF
+N_SAMPLE_NEURONS: int = 1.5e3  # Number of neurons for sampling
+USE_EXAMPLE: bool =  False     # Whether clean inputs will be given or not
+CORR_METRIC: str = 'distcorr'   # Correlation metric to be used
+CLASSIFIER: str  = 'xgboost'    # Classifier for the detection , choice = {xgboost, mlp}.
+# Experiment Configuration
 INPUT_SIZE: List = [1, 28, 28] # Input images' shape (default to be MNIST)
 INPUT_RANGE: List = [0, 255]   # Input image range
-USE_EXAMPLE: bool =  False     # Whether clean inputs will be given or not
 TRAIN_TEST_SPLIT: float = 0.8  # Ratio of train to test
-CLASSIFIER: str = 'xgboost'    # Classifier for the detection , choice = {xgboost, mlp}.
+
 
 def main(args):
 
@@ -56,8 +60,10 @@ def main(args):
     psf_config['patch_size'] = PATCH_SIZE
     psf_config['input_shape'] = INPUT_SIZE
     psf_config['input_range'] = INPUT_RANGE
+    psf_config['n_neuron_sample'] = N_SAMPLE_NEURONS
+    psf_config['corr_method'] = CORR_METRIC
     psf_config['device'] = device
-
+    
     root = args.data_root
     model_list = sorted(os.listdir(root))
 
@@ -76,7 +82,7 @@ def main(args):
 
         for root_m, dirnames, filenames in os.walk(os.path.join(root, model_name)):
             for filename in filenames:
-                if filename.endswith('.pt.1') or filename.endswith('.pt'):
+                if filename.endswith('.pt.1'):
                     model_file_path = os.path.join(root_m, filename)
                 if filename.endswith('gt.txt'):
                     gt_file = os.path.join(root_m, gt_file)
@@ -98,7 +104,8 @@ def main(args):
         try:
             model_config = jsonpickle.decode(open(model_config_path, "r").read())
         except:
-            print("Model {} config is missing".format(model_config))
+            print("Model {} config is missing, skip to next model".format(model_config))
+            continue
 
         if gt_file:
             with open(args.gt_file, "w") as f:
@@ -129,7 +136,6 @@ def main(args):
 
         model_file_path_prefix = '/'.join(model_file_path.split('/')[:-1])
         save_file_path = os.path.join(model_file_path_prefix, 'test_extracted_psf_topo_feature.pkl')
-
         fv = topo_psf_feature_extract(model, img_c, psf_config)
         with open(save_file_path, 'wb') as f:
             pkl.dump(fv, f)

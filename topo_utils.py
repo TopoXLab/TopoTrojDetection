@@ -17,7 +17,7 @@ import pandas as pd
 import skimage.io
 
 # Total number of neurons to be sampled
-SAMPLE_LIMIT = 1.5e3
+SAMPLE_LIMIT = 3e3
 
 def img_std(img):
     """
@@ -142,13 +142,13 @@ def process_pd(pd: torch.tensor, layer_list: List, sample_n_neurons_list: List=N
     return maxpool_pd
 
 
-def discorr_adjacency_gpu(X: torch.tensor, Y: torch.tensor = None)-> torch.tensor:
+def mat_discorr_adjacency(X: torch.tensor, Y: torch.tensor = None)-> torch.tensor:
     """
-    Distance-correlation matrix calculation in tensor format.
+    Distance-correlation matrix calculation in tensor format. Return pairwise distance correlation among all row vectors in X. 
 
     Dist-corr between two vector a and b is:
 
-        dist-corr(v_1, v_2) = (1/n^2)\sum_{i=1}^n \sum_{j=1}^n A_{i,j} B_{i, j}
+        dist-corr(a, b) = (1/d^2)\sum_{i=1}^d \sum_{j=1}^d A_{i,j} B_{i, j}
 
         where:
             A_{i,j} = a_{i,j} - a_{i, .} - a_{., j} + a_{., .}
@@ -156,9 +156,9 @@ def discorr_adjacency_gpu(X: torch.tensor, Y: torch.tensor = None)-> torch.tenso
 
             a_{i,j} = |a_i - a_j|_p
             b_{i,j} = |b_i - b_j|_p
-            a_{i, .} = (1/n) sum_{j=1}^n a_{i, j}
-            a_{., j} = (1/n) sum_{i=1}^n a_{i, j}
-            a_{., .} = (1/n^2) sum_{i=1}^n sum_{j=1}^n a_{i, j}
+            a_{i, .} = (1/d) sum_{j=1}^d a_{i, j}
+            a_{., j} = (1/d) sum_{i=1}^d a_{i, j}
+            a_{., .} = (1/d^2) sum_{i=1}^d sum_{j=1}^d a_{i, j}
 
     Input args:
         X (torch.tensor). n*d. n is the number of neurons and d is the feature dimension.
@@ -188,68 +188,76 @@ def discorr_adjacency_gpu(X: torch.tensor, Y: torch.tensor = None)-> torch.tenso
 
     return pd
 
-def neural_corr(model: torch.nn.Module, train_loader: data.DataLoader)-> Tuple[torch.tensor, List]:
-    """
-    Build neural correlation matrix for the input model.
+# TODO: finish all following doc
+def mat_bc_adjacency(X):
+    '''
+    Bhattacharyya correlation matrix version. Return pairwise BC correlation among all row vectors in X. 
+
+    BC-corr between two vector a and b is:
+        BC(a, b) = \sum_i^d \sqrt{a_i*b_i}
+
     Input args:
-        model (torch.nn.Module): torch network
-        train_loader (torch.utils.data.DataLoader): input images dataloader
-    Return:
-        pairwise_corr_mat (torch.tensor): pairwise correlation matrix
-        sample_neurons_list (List): sampled neural activating vectors
-    """
+        X (torch.tensor). n*d. n is the number of neurons and d is the feature dimension.
+        Y (torch.tensor). Optional.
+    '''
+    
+    if any(X < 0):
+        raise ValueError('Each value shoule in the range [0,1]')
 
-    # used to collect intermediate output for both clean input images and psf input images
-    feature_dict_clean = defaultdict(list)
-    feature_dict_troj = defaultdict(list)
+    X = X.cuda()
+    X_sqrt = torch.sqrt(X)
+    return torch.matmul(X_sqrt, X_sqrt.T)
 
-    for _, (ind, images_c, images_t, _, _) in enumerate(train_loader):
-        images_c, images_t = images_c.cuda(), images_t.cuda()
-        feature_dict_c = feature_collect(model, images_c)
-        feature_dict_t = feature_collect(model, images_t)
-        for k in feature_dict_c:
-            feature_dict_clean[k] += feature_dict_c[k]
-            feature_dict_troj[k] += feature_dict_t[k]
+def mat_cos_adjacency(X):
+    '''
+    Cosine similarity matrix version. Return pairwise cos correlation among all row vectors in X. 
 
-    orig_neural_act = []
-    troj_neural_act = []
-    for k in feature_dict_clean:
+    Input args:
+        X (torch.tensor). n*d. n is the number of neurons and d is the feature dimension.
+        Y (torch.tensor). Optional.
+    '''
+    X = X.cuda()
+    X_row_l2_norm = torch.norm(X, p=2, dim=1).view(-1, 1)
+    X_row_std = X/(X_row_l2_norm+1e-4)
+    return torch.matmul(X_row_std, X_row_std.T)
 
-        # Format PSF input's activating vectors
-        if len(feature_dict_clean[k][0].shape) == 3:
-            # If Conv2d layer then treat the maximum value as the activating value of the filter
-            layer_act = [feature_dict_clean[k][i].max(1)[0].max(1)[0].unsqueeze(1) for i in range(len(feature_dict_clean[k]))]
-        else:
-            layer_act = [feature_dict_clean[k][i].unsqueeze(1) for i in range(len(feature_dict_clean[k]))]
+def mat_pearson_adjacency(X):
+    '''
+    Cosine similarity matrix version. Return pairwise Pearson correlation among all row vectors in X. 
 
-        if len(feature_dict_clean[k][0].shape) == 3:
-            layer_act = torch.cat(layer_act, dim=1)
-            layer_act = layer_act.values
-        else:
-            layer_act = torch.cat(layer_act, dim=1)
-        orig_neural_act.append(layer_act)
+    Input args:
+        X (torch.tensor). n*d. n is the number of neurons and d is the feature dimension.
+        Y (torch.tensor). Optional.
+    '''
+    X = X.cuda()
+    X = X - X.mean(1).view(-1, 1)
+    cov = torch.matmul(X, X.T)
+    eps = torch.tensor(1e-4).cuda()
+    sigma = torch.maximum(torch.sqrt(torch.diagonal(cov)), eps)+1e-4
+    corr  = cov/sigma.view(-1, 1)/sigma.view(1, -1)
+    corr.fill_diagonal_(1)
+    return corr
 
-        if len(feature_dict_troj[k][0].shape) == 3:
-            layer_act = [feature_dict_troj[k][i].max(1)[0].max(1)[0].unsqueeze(1) for i in range(len(feature_dict_troj[k]))]
-        else:
-            layer_act = [feature_dict_troj[k][i].unsqueeze(1) for i in range(len(feature_dict_troj[k]))]
+def mat_jsdiv_adjacency(X):
+    '''
+    Jensen-Shannon Divergence matrix version. Return pairwise JS divergence among all row vectors in X. 
 
-        if len(feature_dict_troj[k][0].shape) == 3:
-            layer_act = torch.cat(layer_act, dim=1)
-            layer_act = layer_act.values
-        else:
-            layer_act = torch.cat(layer_act, dim=1)
-        troj_neural_act.append(layer_act)
+    The JS divergence between two vector a and b is:
+        JS(a, b) = 1/2*(KL(a||m)+KL(b||m))
 
-    merge_neural_act = torch.cat((orig_neural_act, troj_neural_act), dim=1)
+        where:
+            m = (a+b)/2
+            KL is the Kullback-Leibler divergence
 
-    layer_list = parse_arch(model)
-    conv_nfilters_list = [x.in_channels for x in layer_list[0] if hasattr(x, "in_channels")]
-    linear_nneurons_list = [x.in_features for x in layer_list[0] if hasattr(x, "in_features")]
-    sample_neurons_list = None
+    Input args:
+        X (torch.tensor). n*d. n is the number of neurons and d is the feature dimension.
+        Y (torch.tensor). Optional.
+    '''
 
-    if len(merge_neural_act) > SAMPLE_LIMIT:
-        merge_neural_act, sample_neurons_list = sample_act(merge_neural_act, layer_list, sample_size=SAMPLE_LIMIT)
-    pairwise_corr_mat = discorr_adjacency_gpu(merge_neural_act)
+    if any(X < 0):
+        raise ValueError('Each value shoule in the range [0,1]')
 
-    return pairwise_corr_mat, sample_neurons_list
+    paq = X[:, :, None] + X.T[None, :, :]
+    logpaq  = torch.log(paq+1e-4)
+    paqdiag = torch.diag((paq/2*torch.log(paq/2+1e-4)).sum(1)).flatten()
+    return 1/2*(paqdiag[:, None]+paqdiag[None, :]-(paq*torch.log(paq/2+1e-4)).sum(1))

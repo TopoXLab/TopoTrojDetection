@@ -15,7 +15,7 @@ from scipy import sparse
 from scipy.sparse.csr import csr_matrix
 import time
 
-from topo_utils import parse_arch, feature_collect, sample_act, discorr_adjacency_gpu
+from topo_utils import mat_bc_adjacency, parse_arch, feature_collect, sample_act, mat_discorr_adjacency, mat_cos_adjacency, mat_jsdiv_adjacency, mat_pearson_adjacency
 
 
 def makeSparseDM(D: np.array, threshold: float)-> np.array:
@@ -152,6 +152,8 @@ def topo_psf_feature_extract(model: torch.nn.Module, example_dict: Dict, psf_con
     patch_size=psf_config['patch_size']
     input_shape=psf_config['input_shape']
     input_valuerange=psf_config['input_range']
+    n_neuron_sample=psf_config['n_neuron']
+    method=psf_config['corr_method']
     device=psf_config['device']
 
     # If true input examples are not given, use all blank images instead
@@ -240,11 +242,22 @@ def topo_psf_feature_extract(model: torch.nn.Module, example_dict: Dict, psf_con
                 layer_list=parse_arch(model)
                 sample_n_neurons_list=None
                 if len(neural_act)>1.5e3:
-                    neural_act, sample_n_neurons_list=sample_act(neural_act, layer_list, sample_size=1.5e3)
+                    neural_act, sample_n_neurons_list=sample_act(neural_act, layer_list, sample_size=n_neuron_sample)
 
                 # Build neural correlation matrix
-                neural_pd=discorr_adjacency_gpu(neural_act)
-                D=1-neural_pd
+                if method=='distcorr':
+                    neural_pd=mat_discorr_adjacency(neural_act)
+                elif method=='bc':
+                    neural_pd=mat_bc_adjacency(neural_act)
+                elif method=='cos':
+                    neural_pd=mat_cos_adjacency(neural_act)
+                elif method=='pearson':
+                    neural_pd=mat_pearson_adjacency(neural_act)
+                elif method=='js':
+                    neural_pd=mat_jsdiv_adjacency(neural_act)
+                else:
+                    raise Exception(f"Correlation metrics {method} doesn't implemented !")
+                D=1-neural_pd if method!='bc' else -np.log(neural_pd+1e-6)
                 PD_list.append(neural_pd)
 
                 # Approaximate sparse filtration to further save some computation
