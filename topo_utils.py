@@ -183,8 +183,7 @@ def mat_discorr_adjacency(X: torch.tensor, Y: torch.tensor = None)-> torch.tenso
     pd/=n**2
     pd=torch.sqrt(pd)
     pd/=(torch.sqrt(torch.diagonal(pd)[None, :]*torch.diagonal(pd)[:, None])+1e-8)
-    pd = pd.detach().cpu().numpy()
-    np.fill_diagonal(pd, 1)
+    pd.fill_diagonal_(1)
 
     return pd
 
@@ -201,7 +200,7 @@ def mat_bc_adjacency(X):
         Y (torch.tensor). Optional.
     '''
     
-    if any(X < 0):
+    if torch.any(X < 0):
         raise ValueError('Each value shoule in the range [0,1]')
 
     X = X.cuda()
@@ -254,7 +253,7 @@ def mat_jsdiv_adjacency(X):
         Y (torch.tensor). Optional.
     '''
 
-    if any(X < 0):
+    if torch.any(X < 0):
         raise ValueError('Each value shoule in the range [0,1]')
 
     paq = X[:, :, None] + X.T[None, :, :]

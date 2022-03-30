@@ -60,10 +60,10 @@ def main(args):
     psf_config['patch_size'] = PATCH_SIZE
     psf_config['input_shape'] = INPUT_SIZE
     psf_config['input_range'] = INPUT_RANGE
-    psf_config['n_neuron_sample'] = N_SAMPLE_NEURONS
+    psf_config['n_neuron'] = N_SAMPLE_NEURONS
     psf_config['corr_method'] = CORR_METRIC
     psf_config['device'] = device
-    
+
     root = args.data_root
     model_list = sorted(os.listdir(root))
 
@@ -168,7 +168,8 @@ def main(args):
         psf_topk_max=psf_feature_dat.topk(k=min(3, total_examples), dim=3)[0].mean(2).max(2)[0].view(len(gt_list), -1)
         psf_feature_dat=torch.cat([psf_diff_max, psf_med_max, psf_std_max, psf_topk_max], dim=1)
 
-        dat=torch.cat([psf_feature_dat, topo_feature.view(topo_feature.shape[0], -1)], dim=1)
+        # dat=torch.cat([psf_feature_dat, topo_feature.view(topo_feature.shape[0], -1)], dim=1)
+        dat = topo_feature.view(topo_feature.shape[0], -1)
         dat=preprocessing.scale(dat)
         gt_list=torch.tensor(gt_list)
 
@@ -287,7 +288,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, help="Experiment random seed", default=123)
     args = parser.parse_args()
 
-    exp_logfile=date.today().strftime("%d-%m-%Y")+'forgithub.json'
+    exp_logfile=date.today().strftime("%d-%m-%Y")+f'{CORR_METRIC}_{CLASSIFIER}_{N_SAMPLE_NEURONS}_{STEP_SIZE}_{STIM_LEVEL}_{PATCH_SIZE}.json'
     exp_logfile=os.path.join(args.log_path, exp_logfile)
     exp_config={}
     for k, v in args._get_kwargs():

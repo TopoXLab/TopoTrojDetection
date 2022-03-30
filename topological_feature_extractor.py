@@ -110,7 +110,7 @@ def getApproxSparseDM(lambdas: List, eps: float, D: np.array)-> csr_matrix:
     return sparse.coo_matrix((D, (I, J)), shape=(N, N)).tocsr()
 
 
-def topo_feature_generator(PH: List, dim: int)-> Dict:
+def calc_topo_feature(PH: List, dim: int)-> Dict:
     """
     Compute topological feature from the persistent diagram.
     Input args:
@@ -248,17 +248,19 @@ def topo_psf_feature_extract(model: torch.nn.Module, example_dict: Dict, psf_con
                 if method=='distcorr':
                     neural_pd=mat_discorr_adjacency(neural_act)
                 elif method=='bc':
+                    neural_act=torch.softmax(neural_act, 1)
                     neural_pd=mat_bc_adjacency(neural_act)
                 elif method=='cos':
                     neural_pd=mat_cos_adjacency(neural_act)
                 elif method=='pearson':
                     neural_pd=mat_pearson_adjacency(neural_act)
                 elif method=='js':
+                    neural_act=torch.softmax(neural_act, 1)
                     neural_pd=mat_jsdiv_adjacency(neural_act)
                 else:
                     raise Exception(f"Correlation metrics {method} doesn't implemented !")
-                D=1-neural_pd if method!='bc' else -np.log(neural_pd+1e-6)
-                PD_list.append(neural_pd)
+                D=1-neural_pd.detach().cpu().numpy() if method!='bc' else -np.log(neural_pd.detach().cpu().numpy()+1e-6)
+                PD_list.append(neural_pd.detach().cpu().numpy())
 
                 # Approaximate sparse filtration to further save some computation
                 if model._get_name=='ModdedLeNet5Net':
@@ -274,8 +276,8 @@ def topo_psf_feature_extract(model: torch.nn.Module, example_dict: Dict, psf_con
                 PH[1][np.where(PH[1]==np.inf)]=1
                 PH_list.append(PH)
                 # Compute the topological feature with the persistent diagram
-                clean_feature_0=topo_feature_generator(PH, 0)
-                clean_feature_1=topo_feature_generator(PH, 1)
+                clean_feature_0=calc_topo_feature(PH, 0)
+                clean_feature_1=calc_topo_feature(PH, 1)
                 topo_feature=[]
                 for k in sorted(list(clean_feature_0)):
                     topo_feature.append(clean_feature_0[k])
